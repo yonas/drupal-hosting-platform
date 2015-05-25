@@ -1,0 +1,10 @@
+name = Drupal Hosting Platform
+description = Drupal Hosting Platform
+dependencies[] = ctools
+dependencies[] = dhp_distribution
+dependencies[] = dhp_site
+dependencies[] = dhp_site_template
+package = Drupal Hosting Platform
+core = 7.x
+
+configure = admin/config/system/dhp

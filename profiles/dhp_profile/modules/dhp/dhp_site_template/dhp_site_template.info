@@ -1,0 +1,9 @@
+name = Drupal Hosting Platform - Site Template
+description = Create a Site Template content type for the Drupal Hosting Platform
+dependencies[] = entityreference
+dependencies[] = dhp_site
+dependencies[] = file
+dependencies[] = text
+dependencies[] = list
+package = Drupal Hosting Platform
+core = 7.x

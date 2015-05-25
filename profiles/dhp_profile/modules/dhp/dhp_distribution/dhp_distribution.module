@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * Implements hook_node_info().
+ */
+function dhp_distribution_node_info() {
+  return array(
+    'distribution' => array(
+      'name' => t('Distribution'),
+      'base' => 'node_content',
+      'description' => t('A Drupal distribution.'),
+    )
+  );
+}

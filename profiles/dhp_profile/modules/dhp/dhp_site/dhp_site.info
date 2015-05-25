@@ -1,0 +1,9 @@
+name = Drupal Hosting Platform - Site
+description = Create a Site content type for the Drupal Hosting Platform
+package = Drupal Hosting Platform
+dependencies[] = entityreference
+dependencies[] = computed_field
+dependencies[] = file
+dependencies[] = text
+dependencies[] = list
+core = 7.x

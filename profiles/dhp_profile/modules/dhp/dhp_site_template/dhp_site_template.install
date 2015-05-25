@@ -1,0 +1,386 @@
+<?php
+
+function dhp_site_template_install() {
+    // Ensure the forum node type is available.
+    node_types_rebuild();
+
+    // Create fields
+    foreach (_dhp_site_template_installed_fields() as $field) {
+        field_create_field($field);
+    }
+ 
+    // Associate our fields with our content types
+    foreach (_dhp_site_template_installed_instances() as $instance) {
+        field_create_instance($instance);
+    }
+}
+
+function _dhp_site_template_installed_fields() {
+    return array(
+        // Create field_template_admin_mail definition
+        'field_template_admin_mail' => array(
+          'translatable' => '0',
+          'settings' => array(
+            'max_length' => '255',
+          ),
+          'field_name' => 'field_template_admin_mail',
+          'type' => 'text',
+          'active' => '1',
+          'locked' => '0',
+          'cardinality' => '1',
+        ),
+
+        // Create field_template_site_name definition
+        'field_template_site_name' => array(
+          'translatable' => '0',
+          'settings' => array(
+            'max_length' => '255',
+          ),
+          'field_name' => 'field_template_site_name',
+          'type' => 'text',
+          'active' => '1',
+          'locked' => '0',
+          'cardinality' => '1',
+        ),
+
+        // Create field_template_admin_name definition
+        'field_template_admin_name' => array(
+          'translatable' => '0',
+          'settings' => array(
+            'max_length' => '60',
+          ),
+          'field_name' => 'field_template_admin_name',
+          'type' => 'text',
+          'active' => '1',
+          'locked' => '0',
+          'cardinality' => '1',
+        ),
+
+        // Create field_template_admin_pass definition
+        'field_template_admin_pass' => array(
+          'translatable' => '0',
+          'settings' => array(
+            'max_length' => '255',
+          ),
+          'field_name' => 'field_template_admin_pass',
+          'type' => 'text',
+          'active' => '1',
+          'locked' => '0',
+          'cardinality' => '1',
+        ),
+
+        // Create field_distribution_ref definition
+        'field_distribution_ref' => array(
+          'translatable' => '0',
+          'settings' => array(
+            'target_type' => 'node',
+            'handler' => 'base',
+            'handler_settings' => array(
+              'target_bundles' => array(
+                'distribution' => 'distribution',
+              ),
+              'sort' => array(
+                'type' => 'property',
+                'property' => 'title',
+                'direction' => 'ASC',
+              ),
+              'behaviors' => array(
+                'views-select-list' => array(
+                  'status' => 0,
+                ),
+              ),
+            ),
+          ),
+          'field_name' => 'field_distribution_ref',
+          'type' => 'entityreference',
+          'active' => '1',
+          'locked' => '0',
+          'cardinality' => '1',
+        ),
+
+        // Create field_template_doc_root definition
+        'field_template_doc_root' => array(
+          'translatable' => '0',
+          'settings' => array(
+            'max_length' => '255',
+          ),
+          'field_name' => 'field_template_doc_root',
+          'type' => 'text',
+          'active' => '1',
+          'locked' => '0',
+          'cardinality' => '1',
+        ),
+    );
+}
+
+function _dhp_site_template_installed_instances() {
+    $t = get_t();
+    return array( 
+        // Create field_template_admin_mail instance
+        'field_template_admin_mail' => array(
+          'label' => 'Admin email',
+          'widget' => array(
+            'weight' => '5',
+            'type' => 'text_textfield',
+            'active' => 1,
+            'settings' => array(
+              'size' => '60',
+            ),
+          ),
+          'settings' => array(
+            'text_processing' => '0',
+            'user_register_form' => FALSE,
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'inline',
+              'type' => 'text_default',
+              'weight' => '0',
+              'settings' => array(),
+            ),
+            'teaser' => array(
+              'type' => 'hidden',
+              'label' => 'above',
+              'settings' => array(),
+              'weight' => 0,
+            ),
+          ),
+          'required' => 0,
+          'description' => '',
+          'default_value' => array(
+            0 => array(
+              'value' => 'admin@example.com',
+            ),
+          ),
+          'field_name' => 'field_template_admin_mail',
+          'entity_type' => 'node',
+          'bundle' => 'site_template',
+        ),
+
+        // Create field_template_site_name instance
+        'field_template_site_name' => array(
+          'label' => 'Site name',
+          'widget' => array(
+            'weight' => '6',
+            'type' => 'text_textfield',
+            'active' => 1,
+            'settings' => array(
+              'size' => '60',
+            ),
+          ),
+          'settings' => array(
+            'text_processing' => '0',
+            'user_register_form' => FALSE,
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'inline',
+              'type' => 'text_default',
+              'weight' => '1',
+              'settings' => array(),
+            ),
+            'teaser' => array(
+              'type' => 'hidden',
+              'label' => 'above',
+              'settings' => array(),
+              'weight' => 0,
+            ),
+          ),
+          'required' => 0,
+          'description' => '',
+          'default_value' => NULL,
+          'field_name' => 'field_template_site_name',
+          'entity_type' => 'node',
+          'bundle' => 'site_template',
+        ),
+
+        // Create field_template_admin_name instance
+        'field_template_admin_name' => array(
+          'label' => 'Admin name',
+          'widget' => array(
+            'weight' => '3',
+            'type' => 'text_textfield',
+            'active' => 1,
+            'settings' => array(
+              'size' => '60',
+            ),
+          ),
+          'settings' => array(
+            'text_processing' => '0',
+            'user_register_form' => FALSE,
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'inline',
+              'type' => 'text_default',
+              'weight' => '2',
+              'settings' => array(),
+            ),
+            'teaser' => array(
+              'type' => 'hidden',
+              'label' => 'above',
+              'settings' => array(),
+              'weight' => 0,
+            ),
+          ),
+          'required' => 0,
+          'description' => '',
+          'default_value' => array(
+            0 => array(
+              'value' => 'admin',
+            ),
+          ),
+          'field_name' => 'field_template_admin_name',
+          'entity_type' => 'node',
+          'bundle' => 'site_template',
+        ),
+
+        // Create field_template_admin_pass instance
+        'field_template_admin_pass' => array(
+          'label' => 'Admin password',
+          'widget' => array(
+            'weight' => '4',
+            'type' => 'text_textfield',
+            'active' => 1,
+            'settings' => array(
+              'size' => '60',
+            ),
+          ),
+          'settings' => array(
+            'text_processing' => '0',
+            'user_register_form' => FALSE,
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'above',
+              'type' => 'hidden',
+              'weight' => '5',
+              'settings' => array(),
+            ),
+            'teaser' => array(
+              'type' => 'hidden',
+              'label' => 'above',
+              'settings' => array(),
+              'weight' => 0,
+            ),
+          ),
+          'required' => 0,
+          'description' => '',
+          'default_value' => NULL,
+          'field_name' => 'field_template_admin_pass',
+          'entity_type' => 'node',
+          'bundle' => 'site_template',
+        ),
+
+        // Create field_distribution_ref instance
+        'field_distribution_ref' => array(
+          'label' => 'Distribution',
+          'widget' => array(
+            'weight' => '7',
+            'type' => 'entityreference_autocomplete',
+            'active' => 1,
+            'settings' => array(
+              'match_operator' => 'CONTAINS',
+              'size' => '60',
+              'path' => '',
+            ),
+          ),
+          'settings' => array(
+            'user_register_form' => FALSE,
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'inline',
+              'type' => 'entityreference_label',
+              'weight' => '3',
+              'settings' => array(
+                'link' => FALSE,
+              ),
+            ),
+            'teaser' => array(
+              'type' => 'hidden',
+              'label' => 'above',
+              'settings' => array(),
+              'weight' => 0,
+            ),
+          ),
+          'required' => 1,
+          'description' => '',
+          'default_value' => NULL,
+          'field_name' => 'field_distribution_ref',
+          'entity_type' => 'node',
+          'bundle' => 'site_template',
+        ),
+
+        // Create field_template_doc_root instance
+        'field_template_doc_root' => array(
+          'label' => 'Document root',
+          'widget' => array(
+            'weight' => '8',
+            'type' => 'text_textfield',
+            'active' => 1,
+            'settings' => array(
+              'size' => '60',
+            ),
+          ),
+          'settings' => array(
+            'text_processing' => '0',
+            'user_register_form' => FALSE,
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'inline',
+              'type' => 'text_default',
+              'weight' => '4',
+              'settings' => array(),
+            ),
+            'teaser' => array(
+              'type' => 'hidden',
+              'label' => 'above',
+              'settings' => array(),
+              'weight' => 0,
+            ),
+          ),
+          'required' => 1,
+          'description' => '',
+          'default_value' => array(
+            0 => array(
+              'value' => '/var/www/drupal-sites',
+            ),
+          ),
+          'field_name' => 'field_template_doc_root',
+          'entity_type' => 'node',
+          'bundle' => 'site_template',
+        ),
+    );
+}
+
+function dhp_site_template_uninstall() {
+    $result = db_query('SELECT nid FROM {node} n WHERE n.type = :type', array(':type' => 'site_template'));
+    $nids = array();
+    foreach ($result as $row) {
+        $nids[] = $row->nid;
+    }
+
+    // Delete all the nodes at once
+    //node_delete_multiple($nids);
+
+    // Delete comments
+    $instance = array('field_name' => 'comment_body', 'bundle' => 'comment_node_site_template', 'entity_type' => 'comment');
+    field_delete_instance($instance);
+
+    // Delete field instances
+    $fields = _dhp_site_template_installed_instances();
+    foreach ($fields as $field) {
+        field_delete_instance($field);
+    }
+
+    // Delete field definitions
+    $fields = array_keys(_dhp_site_template_installed_fields());
+    foreach ($fields as $field) {
+        field_delete_field($field);
+    }
+
+    // Purge all field infromation
+    field_purge_batch(1000);
+}

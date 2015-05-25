@@ -1,0 +1,527 @@
+<?php
+
+/**
+ * Implements hook_dhp_api().
+ */
+function dhp_dhp_api() {
+    return array(
+        'version' => 1,
+        'path' => drupal_get_path('module', 'dhp') . '/includes/dhp',
+    );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function dhp_views_api() {
+    return array(
+        'version' => 3,
+        'path' => drupal_get_path('module', 'dhp') . '/includes/views',
+    );
+}
+
+/**
+ * Implements hook_ctools_plugin_api_hook_name().
+ */
+function dhp_ctools_plugin_api_hook_name() {
+    return 'dhp_api';
+}
+
+function dhp_debug_mode($enabled = null) {
+    if (is_bool($enabled)) {
+        variable_set('dhp_debug_enabled', $enabled);
+    }
+
+    return variable_get('dhp_debug_enabled', true);
+}
+
+function dhp_get_enabled_plugins() {
+    static $enabled_plugins = null;
+    if (!isset($enabled_plugins)) {
+        $plugin_groups = dhp_discover_plugins();
+        foreach ($plugin_groups as $type => $plugins) {
+            $enabled_plugins[$type] = array();
+            $plugin_status = variable_get('dhp_plugin_status_' . $type, null);
+            if (!isset($plugin_status)) {
+                $enabled_plugins[$type] = $plugins;
+            } else {
+                foreach (variable_get('dhp_plugin_status_' . $type, array()) as $plugin => $status) {
+                    if ($status && isset($plugins[$plugin])) {
+                        $enabled_plugins[$type][] = $plugins[$plugin];
+                    }
+                }
+            }
+        }
+    }
+
+    return $enabled_plugins;
+}
+
+function dhp_get_site_status($site) {
+    static $status = null;
+    if (!isset($status)) {
+        $status = array();
+        dhp_load_status_plugins();
+    }
+
+    if (!isset($status[$site->nid])) {
+        $plugins = dhp_get_enabled_plugins();
+        $status[$site->nid] = '';
+        foreach ($plugins['status'] as $plugin) {
+            $include = DRUPAL_ROOT . '/' . $plugin['path'] . '/' . $plugin['name'] . '.inc';
+            if (file_exists($include)) {
+                require_once $include;
+            }
+
+            $status_plugin = new $plugin['name']();
+            $status[$site->nid] .= $status_plugin->get_status($site);
+        }
+    }
+
+    return $status[$site->nid];
+}
+
+function dhp_load_status_plugins($reset = false) {
+    ctools_include('plugins', 'dhp');
+    dhp_get_module_apis('dhp', $reset);
+    dhp_module_include('dhp');
+}
+
+/**
+ * Load dhp files on behalf of modules.
+ */
+function dhp_module_include($api, $reset = FALSE) {
+    if ($reset) {
+        $cache = &drupal_static('ctools_plugin_api_info');
+        if (isset($cache['dhp']['dhp'])) {
+            unset($cache['dhp']['dhp']);
+        }
+    }
+    ctools_include('plugins');
+    return ctools_plugin_api_include('dhp', $api, 1, 1);
+}
+
+function dhp_get_module_apis($api = 'dhp', $reset = FALSE) {
+    if ($reset) {
+        $cache = &drupal_static('ctools_plugin_api_info');
+        if (isset($cache['dhp']['dhp'])) {
+            unset($cache['dhp']['dhp']);
+        }
+    }
+
+    ctools_include('plugins');
+    return ctools_plugin_api_info('dhp', $api, 1, 1);
+}
+
+/**
+ * Builds and return a list of all plugins available in the system.
+ *
+ * @return Nested array of plugins, grouped by type.
+ */
+function dhp_discover_plugins() {
+  $cache = array('status' => array());
+  // Get plugins from all mdoules.
+  foreach (module_implements('dhp_plugins') as $module) {
+    $function = $module . '_dhp_plugins';
+    $result = $function();
+    if (!is_array($result)) {
+      continue;
+    }
+
+    $module_dir = isset($result['module']) ? $result['module'] : $module;
+    // Setup automatic path/file finding for theme registration
+    if ($module_dir == 'dhp') {
+      $theme_path = drupal_get_path('module', $module_dir) . '/theme';
+      $theme_file = 'theme.inc';
+      $path = drupal_get_path('module', $module_dir) . '/plugins';
+    }
+    else {
+      $theme_path = $path = drupal_get_path('module', $module_dir);
+      $theme_file = "$module.dhp.inc";
+    }
+
+    foreach ($result as $type => $info) {
+      if ($type == 'module') {
+        continue;
+      }
+      foreach ($info as $plugin => $def) {
+        $def['module'] = $module_dir;
+        if (!isset($def['theme path'])) {
+          $def['theme path'] = $theme_path;
+        }
+        if (!isset($def['theme file'])) {
+          $def['theme file'] = $theme_file;
+        }
+        if (!isset($def['path'])) {
+          $def['path'] = $path;
+        }
+        if (!isset($def['parent'])) {
+          $def['parent'] = 'parent';
+        }
+        // Set the internal name to be able to read it out later.
+        $def['name'] = $plugin;
+
+        // merge the new data in
+        $cache[$type][$plugin] = $def;
+      }
+    }
+  }
+
+  drupal_alter('dhp_plugins', $cache);
+  return $cache;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function dhp_menu() {
+    $items = array();
+    $items['admin/config/system/dhp'] = array(
+        'title' => 'Drupal Hosting Platform',
+        'description' => 'Manage Drupal Hosting Platform',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('dhp_admin'),
+        'access arguments' => array('administer drupal hosting platform'),
+        'file' => 'dhp.admin.inc',
+    );
+    $items['admin/config/system/dhp/settings'] = array(
+        'type' => MENU_DEFAULT_LOCAL_TASK,
+        'title' => 'Settings',
+        'access arguments' => array('administer drupal hosting platform'),
+        'weight' => 1,
+        'file' => 'dhp.admin.inc',
+    );
+    $items['admin/config/system/dhp/plugins'] = array(
+        'type' => MENU_LOCAL_TASK,
+        'title' => 'Plugins',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('dhp_admin_plugins'),
+        'access arguments' => array('administer drupal hosting platform'),
+        'weight' => 2,
+        'file' => 'dhp.admin.inc',
+    );
+    $items['node/%node/create'] = array(
+        'type' => MENU_LOCAL_TASK,
+        'title' => 'Create',
+        'page arguments' => array('1'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('dhp_create_site_from_template', 1),
+        'access callback' => 'dhp_create_websites_from_template_access',
+        'access arguments' => array(1),
+        'weight' => 1,
+    );
+    $items['node/%node/create'] = array(
+        'type' => MENU_LOCAL_TASK,
+        'title' => 'Create',
+        'page arguments' => array('1'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('dhp_create_site_from_template', 1),
+        'access callback' => 'dhp_create_websites_from_template_access',
+        'access arguments' => array(1),
+        'weight' => 1,
+    );
+
+    return $items;
+}
+
+function dhp_create_websites_from_template_access($node) {
+    if ($node->type == 'site_template' && user_access('create site content')) {
+        return true;
+    }
+
+    return false;
+}
+
+function dhp_form_site_template_node_form_alter(&$form, &$form_state, $form_id) {
+    if (empty($form['nid']['#value'])) {
+        $form['field_template_admin_pass'][$form['field_template_admin_pass']['#language']][0]['value']['#default_value'] =  user_password(15);
+    }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function dhp_permission() {
+    return array(
+        'administer drupal hosting platform' => array(
+            'title' => 'Administer drupal hosting platform',
+            'description' => 'Administer drupal hosting platform',
+            'restrict access' => true,
+        ),
+    );
+}
+
+/**
+ * Implements hook_preprocess_field().
+ */
+function dhp_preprocess_field(&$variables) {
+    if ($variables['element']['#field_name'] == 'field_site_url') {
+        $url = &$variables['items']['0']['#markup'];
+        $url = l($url, 'http://drupal.' . $url . '.dev3/', array('attributes' => array('target'=>'_blank')));
+    }
+}
+
+function dhp_create_site_from_template($form, &$form_state, $node) { 
+    $root_path = $node->field_template_doc_root[$node->language][0]['value'] . '/';
+    $form_state['storage']['template_node'] = $node;
+    $form['url'] = array(
+        '#type' => 'textfield',
+        '#title' => 'URL',
+        '#required' => true,
+        '#default_value' => 'dhp-' . dhp_random_string(10),
+        '#description' => $root_path . '&lt;<em>URL</em>&gt; must not exist',
+    );
+
+    $distro = node_load($node->field_distribution_ref[$node->language][0]['target_id']);
+    $options = array();
+    foreach ($distro->field_distribution_profiles[$distro->language] as $profile) {
+        $options[] = $profile['value'];
+    }
+
+    $form['profile'] = array(
+        '#type' => 'radios',
+        '#title' => 'Profile',
+        '#required' => true,
+        '#default_value' => $options[0],
+        '#options' => drupal_map_assoc($options),
+    );
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => 'Create site',
+    );
+    return $form;
+}
+
+function dhp_create_site_from_template_validate($form, &$form_state) {
+    if (!preg_match('/^[a-z0-9][a-z0-9-]+$/', $form_state['values']['url'])) {
+        form_set_error('url', 'Valid characters: lower-case alphabets, numbers, dashes. Must start with an alphabet or number.');
+        return;
+    }
+
+    if (strlen($form_state['values']['url']) > 30) {
+        form_set_error('url', 'Please choose a URL up to 30 characters long.');
+        return;
+    }
+
+    $template = $form_state['storage']['template_node'];
+    $root_path = $template->field_template_doc_root[$template->language][0]['value'] . '/';
+    if (file_exists($root_path . $form_state['values']['url'])) {
+        form_set_error('url', $root_path . ' already exists.');
+    }
+}
+
+function dhp_create_site_from_template_submit($form, &$form_state) {
+    $node = dhp_create_site_node(array(
+        'name' => $form_state['values']['url'],
+        'url' => $form_state['values']['url'],
+        'template' => $form_state['storage']['template_node'],
+        'profile' => $form_state['values']['profile'],
+    ));
+
+    drupal_goto('node/'. $node->nid);
+}
+
+function dhp_random_string($length = 10) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyz';
+    $charactersLength = strlen($characters);
+    $randomString = '';
+    for ($i = 0; $i < $length; $i++) {
+        $randomString .= $characters[rand(0, $charactersLength - 1)];
+    }
+    return $randomString;
+}
+
+function dhp_create_site_node($site) {
+    $node = new stdClass();
+    $node->type = 'site';
+    $node->title = $site['name'];
+    $node->language = LANGUAGE_NONE;
+    node_object_prepare($node);
+    global $user;
+    $node->uid = $user->uid;
+    $node->field_site_url[$node->language][0]['value'] = $site['url'];
+    $node->field_site_distro_profile[$node->language][0]['value'] = $site['profile'];
+    $template_node = $site['template']; 
+    $node->field_template_ref[$node->language][0]['target_id'] = $template_node->nid;
+    $node = node_submit($node);
+    node_save($node);
+    return $node;
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function dhp_node_insert($node) {
+    if ($node->type == 'site') {
+        dhp_node_insert_site($node);
+    }
+}
+
+function dhp_node_insert_site($node) {
+    $template = node_load($node->field_template_ref[$node->language][0]['target_id']);
+    $cmd = dhp_create_drush_command($node, $template);
+    dhp_execute_drush_command($cmd);
+}
+
+function dhp_create_drush_command($site, $template) {
+    if (empty($site->field_site_url[$site->language][0]['value'])) {
+        drupal_set_message('Could not create site: website URL is empty.', 'error');
+        return;
+    }
+
+    $args = array();
+    $args[] = $site->field_site_distro_profile[$site->language][0]['value'];
+    $args[] = '--db-su=admin';
+
+    $url = $site->field_site_url[$site->language][0]['value'];
+    $db_name = str_replace('-', '_', $url);
+    $args[] = '--db-url="mysql://admin@localhost/' . $db_name . '"';
+
+    if (!empty($template->field_template_admin_name[$template->language])) {
+        $err = user_validate_name($template->field_template_admin_name[$template->language][0]['safe_value']);
+        if (!empty($$err)) {
+            drupal_set_message($err, 'error');
+        }
+        $args[] = '--account-name=' . escapeshellarg($template->field_template_admin_name[$template->language][0]['safe_value']);
+    }
+    if (!empty($template->field_template_admin_pass[$template->language])) {
+        $args[] = '--account-pass=' . escapeshellarg($template->field_template_admin_pass[$template->language][0]['safe_value']);
+    }
+    if (!empty($template->field_template_admin_mail[$template->language])) {
+        $args[] = '--account-mail=' . escapeshellarg($template->field_template_admin_mail[$template->language][0]['safe_value']);
+    }
+    if (!empty($template->field_template_site_name[$template->language])) {
+        $args[] = '--site-name=' . escapeshellarg($template->field_template_site_name[$template->language][0]['safe_value']);
+    }
+
+    $root_path = $template->field_template_doc_root[$template->language][0]['value'] . '/';
+    $web_path = $root_path . $url;
+
+    $distro = node_load($template->field_distribution_ref[$template->language][0]['target_id']);
+    $scheme = file_uri_scheme($distro->field_distribution_file[$distro->language][0]['uri']);
+    $file_path = variable_get('file_' . $scheme . '_path') . '/' . file_uri_target($distro->field_distribution_file[$distro->language][0]['uri']);
+
+    $post_extract = array();
+    if ($distro->field_distribution_version[$distro->language][0]['value'] == 'Drupal 8') {
+        $post_extract[] = ' cp -f sites/default/default.services.yml sites/default/services.yml';
+    }
+
+/*
+    $cmd = 'echo "Make directory ' . $web_path . ' ..."' . ' && '
+    . 'rm -rf ' . $web_path . ' && '
+    . 'mkdir ' . $web_path . ' && '
+    . 'cd ' . $web_path . ' && '
+    . 'echo "Extracting ' . $distro->title . '..."' . ' && '
+    . 'tar -xf ' . escapeshellarg($file_path) . ' --strip 1' . ' && '
+    . $post_extract
+    . escapeshellcmd('drush site-install ' . join(' ', $args) . ' -y');
+*/
+    $cmd[] = 'echo "Make directory ' . $web_path . ' ..."';
+    $cmd[] = 'rm -rf ' . $web_path;
+    $cmd[] = 'mkdir ' . $web_path;
+    $cmd[] = 'cd ' . $web_path;
+    $cmd[] = 'echo "Extracting ' . $distro->title . '..."';
+    $cmd[] = 'tar -xf ' . escapeshellarg($file_path) . ' --strip 1';
+    $cmd = array_merge($cmd, $post_extract);
+    $cmd[] = escapeshellcmd('drush site-install ' . join(' ', $args) . ' -y');
+
+    // TODO: drupal_alter...
+    drupal_alter('dhp_drush_command', $cmd);
+
+    $cmd = join(' && ', $cmd);
+    return $cmd;
+}
+
+function dhp_execute_drush_command($cmd) {
+    header('Content-Encoding: none;');
+    set_time_limit(0);
+
+    $handle = popen($cmd, "r");
+
+    if (ob_get_level() == 0) {
+        ob_start();
+    }
+
+    $output = '';
+    while(!feof($handle)) {
+        $buffer = fgets($handle);
+        $buffer = trim(htmlspecialchars($buffer));
+        $output .= $buffer . "<br />\n";
+        //echo str_pad('', 4096);    
+
+        ob_flush();
+        flush();
+        usleep(100);
+    }
+
+    if (dhp_debug_mode()) {
+        watchdog('Drupal Hosting Platform', 'Command: ' . $cmd . "<br />\n<br />\nOutput: " . $output);
+    }
+
+    pclose($handle);
+    ob_end_flush();
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function dhp_node_delete($node) {
+    if ($node->type == 'site') {
+        dhp_node_delete_site($node);
+    } 
+}
+
+function dhp_node_delete_site($site) {
+    $template = node_load($site->field_template_ref[$site->language][0]['target_id']);
+    if (!$template) {
+        return;
+    }
+
+    $root_path = $template->field_template_doc_root[$template->language][0]['value'] . '/';
+    $url = $site->field_site_url[$site->language][0]['value'];
+    $web_path = $root_path . $url;
+    if (!file_exists($web_path))
+        return;
+
+    // Make backup directory if it doesn't exist
+    $backup_path = variable_get('file_private_path') . '/site-backups';
+    if (!file_exists($backup_path))
+        mkdir($backup_path);
+
+    // Move site to backup directory
+    rename($web_path, $backup_path . '/' . $url);
+
+    // TODO: dump database to file
+
+    // Delete database
+    $db_name = str_replace('-', '_', $site->field_site_url[$site->language][0]['value']);
+    //db_query('DROP DATABASE :db', array(':db' => $db_name)); // TODO: Why is this broken?
+    db_query('DROP DATABASE IF EXISTS ' . $db_name);
+}
+
+/**
+ * Implements hook_node_validate().
+ */
+function dhp_node_validate($node, $form, &$form_state) {
+    if ($node->type == 'site_template') {
+         dhp_node_validate_site_template($node, $form, $form_state);
+    }
+}
+
+function dhp_node_validate_site_template($node, $form, &$form_state) {
+    if (!file_exists($node->field_template_doc_root[$node->language][0]['value'])) {
+        form_set_error('field_template_doc_root', 'Directory does not exist.');
+    }
+}
+
+/**
+ * Implements hook_init().
+ */
+function dhp_init() {
+    $detect = mobile_detect_get_object();
+    if (!$detect->isMobile() && module_exists('navbar')) {
+        navbar_suppress();
+    } else if (module_exists('admin_menu')) {
+        admin_menu_suppress();
+    }
+}

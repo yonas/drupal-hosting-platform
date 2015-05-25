@@ -1,0 +1,7 @@
+name = Drupal Hosting Platform - Distribution
+description = Create a Distribution content type for the Drupal Hosting Platform
+package = Drupal Hosting Platform
+dependencies[] = file
+dependencies[] = text
+dependencies[] = list
+core = 7.x

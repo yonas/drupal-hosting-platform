@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * Implements hook_enable().
+ */
+function dhp_enable() {
+    if (!db_query("SELECT COUNT(*) FROM {menu_links} WHERE menu_name = 'main-menu' AND link_path = 'https://github.com/yonas/drupal-hosting-platform/wiki'")->fetchField()) {
+        $item = array(
+            'link_path' => 'https://github.com/yonas/drupal-hosting-platform/wiki',
+            'link_title' => 'Support',
+            'menu_name' => 'main-menu',
+            'weight' => '10',
+        );
+        menu_link_save($item);
+    }
+}
+
+/**
+ * Implements hook_disable().
+ */
+function dhp_disable() {
+    if ($mlid = db_query("SELECT mlid FROM {menu_links} WHERE menu_name = :menu AND link_path = :path",
+        array(':menu' => 'main-menu', ':path' => 'https://github.com/yonas/drupal-hosting-platform/wiki'))->fetchField())
+    {
+        menu_link_delete($mlid);
+    }
+    cache_clear_all('*', 'cache_menu', TRUE);
+}

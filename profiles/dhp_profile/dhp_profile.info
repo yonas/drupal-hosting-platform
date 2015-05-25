@@ -1,0 +1,51 @@
+name = Drupal Hosting Platform
+description = Install with Drupal Hosting Platform
+core = 7.x
+distribution_name = Drupal Hosting Platform
+exclusive = 1
+
+; Install necessary core modules.
+dependencies[] = block
+dependencies[] = text
+dependencies[] = contextual
+dependencies[] = list
+dependencies[] = menu
+dependencies[] = number
+dependencies[] = options
+dependencies[] = path
+dependencies[] = taxonomy
+dependencies[] = dblog
+dependencies[] = field_ui
+dependencies[] = file
+dependencies[] = dashboard
+dependencies[] = color
+
+; Install contrib dependencies
+dependencies[] = devel
+dependencies[] = admin_menu
+dependencies[] = adminimal_admin_menu
+dependencies[] = computed_field
+dependencies[] = ctools
+dependencies[] = entity
+dependencies[] = entityreference
+dependencies[] = entity
+dependencies[] = jquery_update
+dependencies[] = libraries
+dependencies[] = menu_breadcrumb
+dependencies[] = menu_target
+dependencies[] = mobile_detect
+dependencies[] = module_filter
+dependencies[] = navbar
+dependencies[] = path_breadcrumbs
+dependencies[] = token
+dependencies[] = views
+dependencies[] = views_field_view
+dependencies[] = pathauto
+dependencies[] = views
+dependencies[] = path_breadcrumbs
+
+; Install DHP dependencies.
+dependencies[] = dhp
+
+; System Requirements.
+php_memory_limit = 256M

@@ -1,0 +1,246 @@
+<?php
+
+/**
+ * Implement hook_install().
+ *
+ * Perform actions to set up the site for this profile.
+ */
+function dhp_profile_install() {
+    include_once DRUPAL_ROOT . '/profiles/minimal/minimal.install';
+    minimal_install();
+
+    variable_set('site_frontpage', 'admin/dashboard'); 
+    variable_set('file_private_path', '../private'); 
+    variable_set('user_register', USER_REGISTER_ADMINISTRATORS_ONLY);
+
+    // Add text formats.
+    $filtered_html_format = array(
+        'format' => 'filtered_html',
+        'name' => 'Filtered HTML',
+        'weight' => 0,
+        'filters' => array(
+            // URL filter.
+            'filter_url' => array(
+                'weight' => 0,
+                'status' => 1,
+            ),
+            // HTML filter.
+            'filter_html' => array(
+                'weight' => 1,
+                'status' => 1,
+            ),
+            // Line break filter.
+            'filter_autop' => array(
+                'weight' => 2,
+                'status' => 1,
+            ),
+            // HTML corrector filter.
+            'filter_htmlcorrector' => array(
+                'weight' => 10,
+                'status' => 1,
+            ),
+        ),
+    );
+    $filtered_html_format = (object) $filtered_html_format;
+    filter_format_save($filtered_html_format);
+
+    $full_html_format = array(
+        'format' => 'full_html',
+        'name' => 'Full HTML',
+        'weight' => 1,
+        'filters' => array(
+            // URL filter.
+            'filter_url' => array(
+                'weight' => 0,
+                'status' => 1,
+            ),
+            // Line break filter.
+            'filter_autop' => array(
+                'weight' => 1,
+                'status' => 1,
+            ),
+            // HTML corrector filter.
+            'filter_htmlcorrector' => array(
+                'weight' => 10,
+                'status' => 1,
+            ),
+        ),
+    );
+    $full_html_format = (object) $full_html_format;
+    filter_format_save($full_html_format);
+
+    // Create a default role for site administrators, with all available permissions assigned.
+    $admin_role = new stdClass();
+    $admin_role->name = 'administrator';
+    $admin_role->weight = 2;
+    user_role_save($admin_role);
+    user_role_grant_permissions($admin_role->rid, array_keys(module_invoke_all('permission')));
+    // Set this as the administrator role.
+    variable_set('user_admin_role', $admin_role->rid);
+
+    // Assign user 1 the "administrator" role.
+    db_insert('users_roles')
+        ->fields(array('uid' => 1, 'rid' => $admin_role->rid))
+        ->execute();
+
+    theme_enable(array('adminimal', 'bootstrap'));
+    theme_disable(array('bartik'));
+    variable_set('theme_default', 'bootstrap');
+    variable_set('admin_theme', 0);
+    variable_set('node_admin_theme', 1);
+
+    variable_set('theme_bootstrap_settings', array(
+        'toggle_logo' => 1,
+        'toggle_name' => 1,
+        'toggle_slogan' => 1,
+        'toggle_node_user_picture' => 1,
+        'toggle_comment_user_picture' => 1,
+        'toggle_comment_user_verification' => 1,
+        'toggle_favicon' => 1,
+        'toggle_main_menu' => 1,
+        'toggle_secondary_menu' => 1,
+        'default_logo' => 1,
+        'logo_path' => '',
+        'logo_upload' => '',
+        'default_favicon' => 1,
+        'favicon_path' => '',
+        'favicon_upload' => '',
+        'bootstrap__active_tab' => 'edit-advanced',
+        'bootstrap_fluid_container' => 0,
+        'bootstrap_button_size' => '',
+        'bootstrap_button_colorize' => 1,
+        'bootstrap_button_iconize' => 1,
+        'bootstrap_forms_required_has_error' => 0,
+        'bootstrap_forms_smart_descriptions' => 1,
+        'bootstrap_forms_smart_descriptions_limit' => 250,
+        'bootstrap_forms_smart_descriptions_allowed_tags' => 'b, code, em, i, kbd, span, strong',
+        'bootstrap_image_shape' => '',
+        'bootstrap_image_responsive' => 1,
+        'bootstrap_table_bordered' => 0,
+        'bootstrap_table_condensed' => 0,
+        'bootstrap_table_hover' => 1,
+        'bootstrap_table_striped' => 1,
+        'bootstrap_table_responsive' => 1,
+        'bootstrap_breadcrumb' => 1,
+        'bootstrap_breadcrumb_home' => 0,
+        'bootstrap_breadcrumb_title' => 1,
+        'bootstrap_navbar_position' => '',
+        'bootstrap_navbar_inverse' => 0,
+        'bootstrap_region_well-navigation' => '',
+        'bootstrap_region_well-header' => '',
+        'bootstrap_region_well-highlighted' => '',
+        'bootstrap_region_well-help' => '',
+        'bootstrap_region_well-content' => '',
+        'bootstrap_region_well-sidebar_first' => 'well',
+        'bootstrap_region_well-sidebar_second' => '',
+        'bootstrap_region_well-footer' => '',
+        'bootstrap_region_well-page_top' => '',
+        'bootstrap_region_well-page_bottom' => '',
+        'bootstrap_region_well-dashboard_main' => '',
+        'bootstrap_region_well-dashboard_sidebar' => '',
+        'bootstrap_region_well-dashboard_inactive' => '',
+        'bootstrap_anchors_fix' => 1,
+        'bootstrap_anchors_smooth_scrolling' => 1,
+        'bootstrap_forms_has_error_value_toggle' => 1,
+        'bootstrap_popover_enabled' => 1,
+        'bootstrap_popover_animation' => 1,
+        'bootstrap_popover_html' => 0,
+        'bootstrap_popover_placement' => 'right',
+        'bootstrap_popover_selector' => '',
+        'bootstrap_popover_trigger' => array(
+            'click' => 'click',
+            'hover' => 0,
+            'focus' => 0,
+            'manual' => 0,
+        ),
+        'bootstrap_popover_trigger_autoclose' => 1,
+        'bootstrap_popover_title' => '',
+        'bootstrap_popover_content' => '',
+        'bootstrap_popover_delay' => 0,
+        'bootstrap_popover_container' => 'body',
+        'bootstrap_tooltip_enabled' => 1,
+        'bootstrap_tooltip_animation' => 1,
+        'bootstrap_tooltip_html' => 0,
+        'bootstrap_tooltip_placement' => 'auto left',
+        'bootstrap_tooltip_selector' => '',
+        'bootstrap_tooltip_trigger' => array(
+            'hover' => 'hover',
+            'focus' => 'focus',
+            'click' => 0,
+            'manual' => 0,
+        ),
+        'bootstrap_tooltip_delay' => 0,
+        'bootstrap_tooltip_container' => 'body',
+        'bootstrap_toggle_jquery_error' => 0,
+        'bootstrap_cdn_provider' => 'jsdelivr',
+        'bootstrap_cdn_custom_css' => '//cdn.jsdelivr.net/bootstrap/3.3.2/css/bootstrap.css',
+        'bootstrap_cdn_custom_css_min' => '//cdn.jsdelivr.net/bootstrap/3.3.2/css/bootstrap.min.css',
+        'bootstrap_cdn_custom_js' => '//cdn.jsdelivr.net/bootstrap/3.3.2/js/bootstrap.js',
+        'bootstrap_cdn_custom_js_min' => '//cdn.jsdelivr.net/bootstrap/3.3.2/js/bootstrap.min.js',
+        'bootstrap_cdn_jsdelivr_version' => '3.3.2',
+        'bootstrap_cdn_jsdelivr_theme' => 'cerulean',
+    ));
+
+    // Disable all blocks in the content region except "Main page content".
+    db_update('block')
+        ->fields(array('region' => '-1'))
+        ->condition('region', 'content')
+        ->condition(db_and()
+            ->condition('module', 'system', '<>')
+            ->condition('delta', 'main', '<>')
+        )
+        ->execute();
+
+    // Disable all blocks in the left sidebar region except "User Login"
+    db_update('block')
+        ->fields(array('region' => '-1'))
+        ->condition('region', 'sidebar_first')
+        ->condition(db_and()
+            ->condition('module', 'user', '<>')
+            ->condition('delta', 'login', '<>')
+        )
+        ->execute();
+
+    // Move help to the correct region.
+    db_update('block')
+        ->fields(array('region' => 'help'))
+        ->condition('module', 'system')
+        ->condition('delta', 'help')
+        ->execute();
+
+    // Move recent node block to dashboard main region.
+    db_update('block')
+        ->fields(array('region' => 'dashboard_main'))
+        ->condition('module', 'node')
+        ->condition('delta', 'recent')
+        ->condition('theme', 'bootstrap')
+        ->execute();
+
+    // Move search block to dashboard sidebar region.
+    db_update('block')
+        ->fields(array('region' => 'dashboard_sidebar'))
+        ->condition('module', 'search')
+        ->condition('delta', 'form')
+        ->condition('theme', 'bootstrap')
+        ->execute();
+
+    module_enable(array('mobile_switch'));
+
+    variable_set('mobile_switch_admin_usage', '1');
+    variable_set('mobile_switch_mobile_theme', 'adminimal');
+    variable_set('mobile_switch_redirect_url_to_desktop', '');
+    variable_set('mobile_switch_redirect_url_to_mobile', '');
+    variable_set('mobile_switch_tablet_usage', '1');
+    variable_set('mobile_detect_import_library_uri', 'sites/all/libraries/Mobile_Detect/Mobile_Detect.php');
+
+    // Create a Home link in the main menu.
+    $item = array(
+        'link_title' => st('Home'),
+        'link_path' => '<front>',
+        'menu_name' => 'main-menu',
+    );
+    menu_link_save($item);
+
+    // Update the menu router information.
+    menu_rebuild();
+}
